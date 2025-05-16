@@ -1,3 +1,3 @@
-module num-conv-go
+module num-conv
 
 go 1.24.1

@@ -7,52 +7,32 @@ import (
 	"strings"
 )
 
-func main() {
-	if len(os.Args) != 2 {
-		fmt.Println("Usage: go run main.go <number>")
-		fmt.Println("Example: go run main.go 0xAFB")
-		fmt.Println("Example: go run main.go 0b1010")
-		fmt.Println("Example: go run main.go 123.45")
-		fmt.Println("Example: go run main.go -12.34")
-		os.Exit(1)
-	}
-
-	input := os.Args[1]
-	var decimal float64
-	var err error
-
+func convert(input string) (decimal float64, hex string, binary string, isTwosComplement bool, isFractional bool, err error) {
 	// Determine the input format and convert to decimal
 	switch {
 	case strings.HasPrefix(input, "0x"):
 		// Handle hex input
 		hexValue, err := strconv.ParseInt(strings.TrimPrefix(input, "0x"), 16, 64)
 		if err != nil {
-			fmt.Printf("Error: Invalid hex format - %v\n", err)
-			os.Exit(1)
+			return 0, "", "", false, false, fmt.Errorf("invalid hex format: %v", err)
 		}
 		decimal = float64(hexValue)
 	case strings.HasPrefix(input, "0b"):
 		// Handle binary input
 		binaryValue, err := strconv.ParseInt(strings.TrimPrefix(input, "0b"), 2, 64)
 		if err != nil {
-			fmt.Printf("Error: Invalid binary format - %v\n", err)
-			os.Exit(1)
+			return 0, "", "", false, false, fmt.Errorf("invalid binary format: %v", err)
 		}
 		decimal = float64(binaryValue)
 	default:
 		// Handle decimal input (including fractional numbers)
 		decimal, err = strconv.ParseFloat(input, 64)
+		if err != nil {
+			return 0, "", "", false, false, fmt.Errorf("invalid decimal format: %v", err)
+		}
 	}
 
-	if err != nil {
-		fmt.Printf("Error: Invalid input format - %v\n", err)
-		os.Exit(1)
-	}
-
-	// Convert decimal to other formats
-	var hex, binary string
-	var isTwosComplement bool
-	var isFractional bool = decimal != float64(int64(decimal))
+	isFractional = decimal != float64(int64(decimal))
 
 	if decimal < 0 {
 		// For negative numbers, we need to calculate the two's complement
@@ -79,6 +59,26 @@ func main() {
 		binary = fmt.Sprintf("0b%b", uint64(decimal))
 		isTwosComplement = false
 	}
+
+	return decimal, hex, binary, isTwosComplement, isFractional, nil
+}
+
+func main() {
+	if len(os.Args) != 2 {
+		fmt.Println("Usage: go run main.go <number>")
+		fmt.Println("Example: go run main.go 0xAFB")
+		fmt.Println("Example: go run main.go 0b1010")
+		fmt.Println("Example: go run main.go 123.45")
+		fmt.Println("Example: go run main.go -12.34")
+		os.Exit(1)
+	}
+
+	decimal, hex, binary, isTwosComplement, isFractional, err := convert(os.Args[1])
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
 	decimalStr := fmt.Sprintf("%g", decimal)
 
 	// ANSI escape codes for colors
